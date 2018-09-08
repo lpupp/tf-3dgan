@@ -14,7 +14,8 @@ from utils import *
 Global Parameters
 '''
 n_epochs = 10000
-batch_size = 32
+#batch_size = 32
+batch_size = 2
 g_lr = 0.0025
 d_lr = 0.00001
 beta = 0.5
@@ -22,8 +23,9 @@ d_thresh = 0.8
 z_size = 200
 leak_value = 0.2
 cube_len = 128
-obj_ratio = 0.7
-obj = 'data/src_png'
+#obj_ratio = 0.7
+obj_ratio = 1.0
+obj = 'data/src_png/'
 
 train_sample_directory = './data/train_sample/'
 model_directory = './models/'
@@ -170,16 +172,16 @@ def initialiseWeights():
     weights['wd3'] = tf.get_variable("wd3", shape=[4, 4, 4, 64, 128], initializer=xavier_init)
     weights['wd4'] = tf.get_variable("wd4", shape=[4, 4, 4, 128, 256], initializer=xavier_init)
     weights['wd5'] = tf.get_variable("wd5", shape=[4, 4, 4, 256, 512], initializer=xavier_init)
-    weights['wd6'] = tf.get_variable("wd5", shape=[4, 4, 4, 512, 1], initializer=xavier_init)
+    weights['wd6'] = tf.get_variable("wd6", shape=[4, 4, 4, 512, 1], initializer=xavier_init)
 
     return weights
 
-# TODO(@lpupp) Fix this (if necessary)
 def trainGAN(is_dummy=False, checkpoint=None):
     """TODO."""
     weights = initialiseWeights()
 
     z_vector = tf.placeholder(shape=[batch_size, z_size], dtype=tf.float32)
+    x_vector = tf.placeholder(shape=[batch_size, cube_len, cube_len, cube_len, 1], dtype=tf.float32)
 
     net_g_train = generator(z_vector, phase_train=True, reuse=False)
 
@@ -218,9 +220,9 @@ def trainGAN(is_dummy=False, checkpoint=None):
     para_d = [var for var in tf.trainable_variables() if any(x in var.name for x in ['wd', 'bd', 'dis'])]
 
     # only update the weights for the discriminator network
-    optimizer_op_d = tf.train.AdamOptimizer(learning_rate=d_lr,beta1=beta).minimize(d_loss,var_list=para_d)
+    optimizer_op_d = tf.train.AdamOptimizer(learning_rate=d_lr, beta1=beta).minimize(d_loss, var_list=para_d)
     # only update the weights for the generator network
-    optimizer_op_g = tf.train.AdamOptimizer(learning_rate=g_lr,beta1=beta).minimize(g_loss,var_list=para_g)
+    optimizer_op_g = tf.train.AdamOptimizer(learning_rate=g_lr, beta1=beta).minimize(g_loss, var_list=para_g)
 
     saver = tf.train.Saver()
     vis = visdom.Visdom()
@@ -233,12 +235,12 @@ def trainGAN(is_dummy=False, checkpoint=None):
             saver.restore(sess, checkpoint)
 
         if is_dummy:
-            volumes = np.random.randint(0,2,(batch_size,cube_len,cube_len,cube_len))
+            volumes = np.random.randint(0, 2, (batch_size, cube_len, cube_len, cube_len))
             print('Using Dummy Data')
         else:
-            volumes = getAll(obj='src_png', train=True, is_local=False, img_dim=128, obj_ratio=obj_ratio)
+            volumes = d.getAll(obj=obj, train=True, is_local=True, img_dim=128, obj_ratio=obj_ratio)
             print('Using ' + obj + ' Data')
-        volumes = volumes[...,np.newaxis].astype(np.float)
+        volumes = volumes[..., np.newaxis].astype(np.float)
         # volumes *= 2.0
         # volumes -= 1.0
 
@@ -258,39 +260,38 @@ def trainGAN(is_dummy=False, checkpoint=None):
                                                 summary_n_p_z,
                                                 summary_d_acc])
 
-            summary_d, discriminator_loss = sess.run([d_summary_merge,d_loss],feed_dict={z_vector:z, x_vector:x})
-            summary_g, generator_loss = sess.run([summary_g_loss,g_loss],feed_dict={z_vector:z})
-            d_accuracy, n_x, n_z = sess.run([d_acc, n_p_x, n_p_z],feed_dict={z_vector:z, x_vector:x})
+            summary_d, discriminator_loss = sess.run([d_summary_merge, d_loss], feed_dict={z_vector: z, x_vector: x})
+            summary_g, generator_loss = sess.run([summary_g_loss, g_loss], feed_dict={z_vector: z})
+            d_accuracy, n_x, n_z = sess.run([d_acc, n_p_x, n_p_z], feed_dict={z_vector: z, x_vector: x})
             print(n_x, n_z)
 
             if d_accuracy < d_thresh:
-                sess.run([optimizer_op_d],feed_dict={z_vector:z, x_vector:x})
-                print('Discriminator Training ', "epoch: ",epoch,', d_loss:',discriminator_loss,'g_loss:',generator_loss, "d_acc: ", d_accuracy)
+                sess.run([optimizer_op_d], feed_dict={z_vector: z, x_vector: x})
+                print('Discriminator Training ', 'epoch: ', epoch, ', d_loss:', discriminator_loss, 'g_loss:', generator_loss, 'd_acc: ', d_accuracy)
 
-            sess.run([optimizer_op_g],feed_dict={z_vector:z})
-            print('Generator Training ', "epoch: ",epoch,', d_loss:',discriminator_loss,'g_loss:',generator_loss, "d_acc: ", d_accuracy)
+            sess.run([optimizer_op_g], feed_dict={z_vector: z})
+            print('Generator Training ', 'epoch: ', epoch, ', d_loss:', discriminator_loss, 'g_loss:', generator_loss, 'd_acc: ', d_accuracy)
 
             # output generated chairs
             if epoch % 200 == 0:
-                g_objects = sess.run(net_g_test,feed_dict={z_vector:z_sample})
+                g_objects = sess.run(net_g_test, feed_dict={z_vector: z_sample})
                 if not os.path.exists(train_sample_directory):
                     os.makedirs(train_sample_directory)
-                g_objects.dump(train_sample_directory+'/biasfree_'+str(epoch))
+                g_objects.dump(train_sample_directory + '/biasfree_' + str(epoch))
                 id_ch = np.random.randint(0, batch_size, 4)
                 for i in range(4):
                     if g_objects[id_ch[i]].max() > 0.5:
-    		            d.plotVoxelVisdom(np.squeeze(g_objects[id_ch[i]]>0.5), vis, '_'.join(map(str,[epoch,i])))
+                        d.plotVoxelVisdom(np.squeeze(g_objects[id_ch[i]] > 0.5), vis, '_'.join(map(str, [epoch, i])))
             if epoch % 50 == 10:
                 if not os.path.exists(model_directory):
                     os.makedirs(model_directory)
-                saver.save(sess, save_path = model_directory + '/biasfree_' + str(epoch) + '.cptk')
+                saver.save(sess, save_path=model_directory + '/biasfree_' + str(epoch) + '.cptk')
 
 
 def testGAN(trained_model_path=None, n_batches=40):
-
     weights = initialiseWeights()
 
-    z_vector = tf.placeholder(shape=[batch_size,z_size],dtype=tf.float32)
+    z_vector = tf.placeholder(shape=[batch_size, z_size], dtype=tf.float32)
     net_g_test = generator(z_vector, phase_train=True, reuse=True)
 
     vis = visdom.Visdom()
@@ -306,12 +307,13 @@ def testGAN(trained_model_path=None, n_batches=40):
         for i in range(n_batches):
             next_sigma = float(raw_input())
             z_sample = np.random.normal(0, next_sigma, size=[batch_size, z_size]).astype(np.float32)
-            g_objects = sess.run(net_g_test,feed_dict={z_vector:z_sample})
+            g_objects = sess.run(net_g_test,feed_dict={z_vector: z_sample})
             id_ch = np.random.randint(0, batch_size, 4)
             for i in range(4):
                 print(g_objects[id_ch[i]].max(), g_objects[id_ch[i]].min(), g_objects[id_ch[i]].shape)
                 if g_objects[id_ch[i]].max() > 0.5:
-                    d.plotVoxelVisdom(np.squeeze(g_objects[id_ch[i]]>0.5), vis, '_'.join(map(str,[i])))
+                    d.plotVoxelVisdom(np.squeeze(g_objects[id_ch[i]] > 0.5), vis, '_'.join(map(str, [i])))
+
 
 if __name__ == '__main__':
     test = bool(int(sys.argv[1]))
