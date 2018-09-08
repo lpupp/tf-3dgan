@@ -21,9 +21,11 @@ beta = 0.5
 d_thresh = 0.8
 z_size = 200
 leak_value = 0.2
-cube_len = 64
+#cube_len = 64
+cube_len = 128
 obj_ratio = 0.7
-obj = 'chair'
+#obj = 'chair'
+obj = 'art'
 
 train_sample_directory = './train_sample/'
 model_directory = './models/'
@@ -72,7 +74,7 @@ def generator(z, batch_size=batch_size, phase_train=True, reuse=False):
 
         g_5 = tf.nn.conv3d_transpose(g_4,
                                      weights['wg5'],
-                                     (batch_size, 64, 64, 64, 1),
+                                     (batch_size, 64, 64, 64, 32),
                                      strides=strides,
                                      padding="SAME")
         g_5 = tf.contrib.layers.batch_norm(g_5, is_training=phase_train)
@@ -86,12 +88,12 @@ def generator(z, batch_size=batch_size, phase_train=True, reuse=False):
         # g_6 = tf.nn.sigmoid(g_6)
         g_6 = tf.nn.tanh(g_6)
 
-    print g_1, 'g1'
-    print g_2, 'g2'
-    print g_3, 'g3'
-    print g_4, 'g4'
-    print g_5, 'g5'
-    print g_6, 'g6'
+    print(g_1, 'g1')
+    print(g_2, 'g2')
+    print(g_3, 'g3')
+    print(g_4, 'g4')
+    print(g_5, 'g5')
+    print(g_6, 'g6')
 
     return g_6
 
@@ -143,12 +145,12 @@ def discriminator(inputs, phase_train=True, reuse=False):
         d_6_no_sigmoid = d_6
         d_6 = tf.nn.sigmoid(d_6)
 
-    print d_1, 'd1'
-    print d_2, 'd2'
-    print d_3, 'd3'
-    print d_4, 'd4'
-    print d_5, 'd5'
-    print d_6, 'd6'
+    print(d_1, 'd1')
+    print(d_2, 'd2')
+    print(d_3, 'd3')
+    print(d_4, 'd4')
+    print(d_5, 'd5')
+    print(d_6, 'd6')
 
     return d_6, d_6_no_sigmoid
 
@@ -158,20 +160,18 @@ def initialiseWeights():
     global weights
     xavier_init = tf.contrib.layers.xavier_initializer()
 
-    # TODO(lpupp) figure out shape of wg1
-    weights['wg1'] = tf.get_variable("wg1", shape=[4, 4, 4, 1, 64], initializer=xavier_init)
-    weights['wg2'] = tf.get_variable("wg2", shape=[4, 4, 4, 512, 200], initializer=xavier_init)
-    weights['wg3'] = tf.get_variable("wg3", shape=[4, 4, 4, 256, 512], initializer=xavier_init)
-    weights['wg4'] = tf.get_variable("wg4", shape=[4, 4, 4, 128, 256], initializer=xavier_init)
-    weights['wg5'] = tf.get_variable("wg5", shape=[4, 4, 4, 64, 128], initializer=xavier_init)
-    weights['wg6'] = tf.get_variable("wg6", shape=[4, 4, 4, 1, 64], initializer=xavier_init)
+    weights['wg1'] = tf.get_variable("wg1", shape=[4, 4, 4, 512, 200], initializer=xavier_init)
+    weights['wg2'] = tf.get_variable("wg2", shape=[4, 4, 4, 256, 512], initializer=xavier_init)
+    weights['wg3'] = tf.get_variable("wg3", shape=[4, 4, 4, 128, 256], initializer=xavier_init)
+    weights['wg4'] = tf.get_variable("wg4", shape=[4, 4, 4, 64, 128], initializer=xavier_init)
+    weights['wg5'] = tf.get_variable("wg5", shape=[4, 4, 4, 32, 64], initializer=xavier_init)
+    weights['wg6'] = tf.get_variable("wg6", shape=[4, 4, 4, 1, 32], initializer=xavier_init)
 
-    # TODO(lpupp) figure out shape of wd5
-    weights['wd1'] = tf.get_variable("wd1", shape=[4, 4, 4, 1, 64], initializer=xavier_init)
-    weights['wd2'] = tf.get_variable("wd2", shape=[4, 4, 4, 64, 128], initializer=xavier_init)
-    weights['wd3'] = tf.get_variable("wd3", shape=[4, 4, 4, 128, 256], initializer=xavier_init)
-    weights['wd4'] = tf.get_variable("wd4", shape=[4, 4, 4, 256, 512], initializer=xavier_init)
-    # weights['wd5'] = tf.get_variable("wd5", shape=[4, 4, 4, 512, 1], initializer=xavier_init)
+    weights['wd1'] = tf.get_variable("wd1", shape=[4, 4, 4, 1, 32], initializer=xavier_init)
+    weights['wd2'] = tf.get_variable("wd2", shape=[4, 4, 4, 32, 64], initializer=xavier_init)
+    weights['wd3'] = tf.get_variable("wd3", shape=[4, 4, 4, 64, 128], initializer=xavier_init)
+    weights['wd4'] = tf.get_variable("wd4", shape=[4, 4, 4, 128, 256], initializer=xavier_init)
+    weights['wd5'] = tf.get_variable("wd5", shape=[4, 4, 4, 256, 512], initializer=xavier_init)
     weights['wd6'] = tf.get_variable("wd5", shape=[4, 4, 4, 512, 1], initializer=xavier_init)
 
     return weights
@@ -181,7 +181,7 @@ def trainGAN(is_dummy=False, checkpoint=None):
     """TODO."""
     weights = initialiseWeights()
 
-    z_vector = tf.placeholder(shape=[batch_size, z_size], dtype=tf.float32) dtype=tf.float32)
+    z_vector = tf.placeholder(shape=[batch_size, z_size], dtype=tf.float32)
 
     net_g_train = generator(z_vector, phase_train=True, reuse=False)
 
@@ -236,10 +236,10 @@ def trainGAN(is_dummy=False, checkpoint=None):
 
         if is_dummy:
             volumes = np.random.randint(0,2,(batch_size,cube_len,cube_len,cube_len))
-            print 'Using Dummy Data'
+            print('Using Dummy Data')
         else:
             volumes = d.getAll(obj=obj, train=True, is_local=is_local, obj_ratio=obj_ratio)
-            print 'Using ' + obj + ' Data'
+            print('Using ' + obj + ' Data')
         volumes = volumes[...,np.newaxis].astype(np.float)
         # volumes *= 2.0
         # volumes -= 1.0
@@ -263,14 +263,14 @@ def trainGAN(is_dummy=False, checkpoint=None):
             summary_d, discriminator_loss = sess.run([d_summary_merge,d_loss],feed_dict={z_vector:z, x_vector:x})
             summary_g, generator_loss = sess.run([summary_g_loss,g_loss],feed_dict={z_vector:z})
             d_accuracy, n_x, n_z = sess.run([d_acc, n_p_x, n_p_z],feed_dict={z_vector:z, x_vector:x})
-            print n_x, n_z
+            print(n_x, n_z)
 
             if d_accuracy < d_thresh:
                 sess.run([optimizer_op_d],feed_dict={z_vector:z, x_vector:x})
-                print 'Discriminator Training ', "epoch: ",epoch,', d_loss:',discriminator_loss,'g_loss:',generator_loss, "d_acc: ", d_accuracy
+                print('Discriminator Training ', "epoch: ",epoch,', d_loss:',discriminator_loss,'g_loss:',generator_loss, "d_acc: ", d_accuracy)
 
             sess.run([optimizer_op_g],feed_dict={z_vector:z})
-            print 'Generator Training ', "epoch: ",epoch,', d_loss:',discriminator_loss,'g_loss:',generator_loss, "d_acc: ", d_accuracy
+            print('Generator Training ', "epoch: ",epoch,', d_loss:',discriminator_loss,'g_loss:',generator_loss, "d_acc: ", d_accuracy)
 
             # output generated chairs
             if epoch % 200 == 0:
@@ -311,7 +311,7 @@ def testGAN(trained_model_path=None, n_batches=40):
             g_objects = sess.run(net_g_test,feed_dict={z_vector:z_sample})
             id_ch = np.random.randint(0, batch_size, 4)
             for i in range(4):
-                print g_objects[id_ch[i]].max(), g_objects[id_ch[i]].min(), g_objects[id_ch[i]].shape
+                print(g_objects[id_ch[i]].max(), g_objects[id_ch[i]].min(), g_objects[id_ch[i]].shape)
                 if g_objects[id_ch[i]].max() > 0.5:
                     d.plotVoxelVisdom(np.squeeze(g_objects[id_ch[i]]>0.5), vis, '_'.join(map(str,[i])))
 
