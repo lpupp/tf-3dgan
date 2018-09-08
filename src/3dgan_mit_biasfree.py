@@ -21,13 +21,11 @@ beta = 0.5
 d_thresh = 0.8
 z_size = 200
 leak_value = 0.2
-#cube_len = 64
 cube_len = 128
 obj_ratio = 0.7
-#obj = 'chair'
-obj = 'art'
+obj = 'src_png'
 
-train_sample_directory = './train_sample/'
+train_sample_directory = './data/train_sample/'
 model_directory = './models/'
 is_local = False
 
@@ -234,6 +232,7 @@ def trainGAN(is_dummy=False, checkpoint=None):
         if checkpoint is not None:
             saver.restore(sess, checkpoint)
 
+        # TODO (@lpupp) make sure dataIO.getAll is updated for my data
         if is_dummy:
             volumes = np.random.randint(0,2,(batch_size,cube_len,cube_len,cube_len))
             print('Using Dummy Data')
