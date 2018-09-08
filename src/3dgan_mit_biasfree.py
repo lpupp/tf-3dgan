@@ -23,7 +23,7 @@ z_size = 200
 leak_value = 0.2
 cube_len = 128
 obj_ratio = 0.7
-obj = 'src_png'
+obj = 'data/src_png'
 
 train_sample_directory = './data/train_sample/'
 model_directory = './models/'
@@ -232,12 +232,11 @@ def trainGAN(is_dummy=False, checkpoint=None):
         if checkpoint is not None:
             saver.restore(sess, checkpoint)
 
-        # TODO (@lpupp) make sure dataIO.getAll is updated for my data
         if is_dummy:
             volumes = np.random.randint(0,2,(batch_size,cube_len,cube_len,cube_len))
             print('Using Dummy Data')
         else:
-            volumes = d.getAll(obj=obj, train=True, is_local=is_local, obj_ratio=obj_ratio)
+            volumes = getAll(obj='src_png', train=True, is_local=False, img_dim=128, obj_ratio=obj_ratio)
             print('Using ' + obj + ' Data')
         volumes = volumes[...,np.newaxis].astype(np.float)
         # volumes *= 2.0

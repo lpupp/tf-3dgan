@@ -10,7 +10,6 @@ import skimage.measure as sk
 from mpl_toolkits import mplot3d
 
 from keras.preprocessing.image import img_to_array, load_img
-import cv2
 from math import floor
 
 try:
@@ -18,14 +17,13 @@ try:
     from stl import mesh
 except:
     pass
-    print 'All dependencies not loaded, some functionality may not work'
+    print('All dependencies not loaded, some functionality may not work')
 
 #LOCAL_PATH = '/home/meetshah1995/datasets/ModelNet/3DShapeNets/volumetric_data/'
 #SERVER_PATH = '/home/gpu_users/meetshah/3dgan/volumetric_data/'
 
-LOCAL_PATH = '/Users/lucagaegauf/Documents/Misc/p_programming/deep_learning/GAN/statue_GAN/data/src_png'
-_SERVER_PATH = ''
-TEST_PATH = '/Users/lucagaegauf/Documents/Misc/p_programming/deep_learning/GAN/statue_GAN/data/test'
+LOCAL_PATH = '/Users/lucagaegauf/Documents/Misc/p_programming/deep_learning/GAN/statue_GAN/'
+SERVER_PATH = ''
 
 def getVF(path):
     raw_data = tuple(open(path, 'r'))
@@ -92,17 +90,17 @@ def getVoxelFromMat(path, cube_len=64):
     return voxels
 
 
-def getAll(obj='src_png', train=True, is_local=False, cube_len=64, obj_ratio=1.0):
-    if train:
-        objPath = SERVER_PATH + obj
-        if is_local:
-            objPath = LOCAL_PATH + obj
-    else:
-        objPath = TEST_PATH
-    fileList = [f for f in os.listdir(objPath) if f.endswith('.mat')]
-    fileList = fileList[0:int(obj_ratio*len(fileList))]
-    volumeBatch = np.asarray([getVoxelFromMat(objPath + f, cube_len) for f in fileList],dtype=np.bool)
-    return volumeBatch
+#def getAll(obj='src_png', train=True, is_local=False, cube_len=64, obj_ratio=1.0):
+#    if train:
+#        objPath = SERVER_PATH + obj
+#        if is_local:
+#            objPath = LOCAL_PATH + obj
+#    else:
+#        objPath = TEST_PATH
+#    fileList = [f for f in os.listdir(objPath) if f.endswith('.mat')]
+#    fileList = fileList[0:int(obj_ratio*len(fileList))]
+#    volumeBatch = np.asarray([getVoxelFromMat(objPath + f, cube_len) for f in fileList], dtype=np.bool)
+#    return volumeBatch
 
 
 def get_unique_image_names(path):
@@ -148,9 +146,17 @@ def getVoxelFromPNG(path, imagesList, img_dim=128):
     return voxels
 
 
-def load_all_images(path, img_dim=128):
+def getAll(obj='src_png', train=True, is_local=False, img_dim=128, obj_ratio=1.0):
     """Load all scans."""
+    if train:
+        path = SERVER_PATH + obj
+        if is_local:
+            path = LOCAL_PATH + obj
+        else:
+            path = LOCAL_PATH + 'data/test'
+
     unique_imgs = get_unique_image_names(path)
+    unique_imgs = unique_imgs[0:int(obj_ratio * len(unique_imgs))]
     imagesList = os.listdir(path)
 
     all_images = np.zeros((len(unique_imgs), img_dim, img_dim, img_dim))
